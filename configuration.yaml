@@ -1,0 +1,134 @@
+default_config:
+influxdb:
+  include:
+    domains:
+      - sensor
+tts:
+  - platform: google_translate
+fan:
+  - platform: xiaomi_miio
+    name: Mi Air Purifier 3H
+    host: !secret air_purifier_ip 
+    token: !secret air_purifier_token
+    model: zhimi.airpurifier.mb3
+input_select:
+    mi_air_purifier_mode:
+      name: Mode
+      options:
+        - Auto
+        - Silent
+        - Fan
+      initial: Auto
+      icon: mdi:animation-outline
+input_number:
+    mi_air_purifier_fan_level:
+      name: "Fan level"
+      initial: 1
+      min: 1
+      max: 3
+      step: 1
+      icon: mdi:jquery
+input_boolean:
+    mi_air_purifier_attributes:
+      name: Attributes
+      icon: mdi:pencil
+switch:
+  - platform: template
+    switches:
+      mi_air_purifier_child_lock:
+        friendly_name: "Child lock"
+        value_template: "{{ is_state_attr('fan.mi_air_purifier_3h', 'child_lock', true) }}"
+        turn_on:
+          service: xiaomi_miio.fan_set_child_lock_on
+          data:
+            entity_id: fan.mi_air_purifier_3h
+        turn_off:
+          service: xiaomi_miio.fan_set_child_lock_off
+          data:
+            entity_id: fan.mi_air_purifier_3h
+        icon_template: "mdi:lock-outline"
+device_tracker:
+  - platform: nmap_tracker
+    hosts: 192.168.1.1/24
+    home_interval: 60
+    interval_seconds: 120
+    exclude:
+     - !secret router_ip
+     - !secret hassio_ip
+
+sensor:
+  - platform: command_line
+    command: "cat /sys/class/thermal/thermal_zone0/temp"
+    name: CPU Temperature
+    unit_of_measurement: "°C"
+    value_template: '{{ value | multiply(0.001) | round(1) }}'
+  - platform: template
+    sensors:
+      temperature_outside:
+        friendly_name: "Temperature outside"
+        unit_of_measurement: '°C'
+        value_template: "{{ state_attr('weather.home', 'temperature') }}"
+      mi_air_purifier_temp:
+        friendly_name: "Temperature"
+        value_template: "{{ state_attr('fan.mi_air_purifier_3h', 'temperature') }}"
+        unit_of_measurement: "°C"
+        device_class: "temperature"
+      mi_air_purifier_humidity:
+        friendly_name: "Humidity"
+        value_template: "{{ state_attr('fan.mi_air_purifier_3h', 'humidity') }}"
+        unit_of_measurement: "%"
+        device_class: "humidity"
+      mi_air_purifier_air_quality_pm25:
+        friendly_name: "Air quality (AQI) PM2.5"
+        value_template: "{{ state_attr('fan.mi_air_purifier_3h', 'aqi') }}"
+        unit_of_measurement: "μg/m³"
+        icon_template: "mdi:weather-fog"
+      mi_air_purifier_avg_air_quality_pm25:
+        friendly_name: "Average air quality (AvgAQI) PM2.5"
+        value_template: "{{ state_attr('fan.mi_air_purifier_3h', 'average_aqi') }}"
+        unit_of_measurement: "μg/m³"
+        icon_template: "mdi:weather-hazy"
+      mi_air_purifier_filter_remaining:
+        friendly_name: "Filter remaining"
+        value_template: "{{ state_attr('fan.mi_air_purifier_3h', 'filter_life_remaining') }}"
+        unit_of_measurement: "%"
+        icon_template: "mdi:heart-outline"
+      mi_air_purifier_speed:
+        friendly_name: "Motor speed"
+        value_template: "{{ state_attr('fan.mi_air_purifier_3h', 'motor_speed') }}"
+        unit_of_measurement: "rpm"
+        icon_template: "mdi:speedometer"
+google:
+  client_id: !secret google_client_id
+  client_secret: !secret google_client_secret
+
+webostv:
+  host: !secret beedroom_tv_ip
+  name: Beedroom TV
+  turn_on_action:
+    service: wake_on_lan.send_magic_packet
+    data:
+      mac: !secret beedroom_tv_mac_address
+      broadcast_address: !secret beedroom_tv_ip
+  customize:
+    sources:
+      - livetv
+      - youtube
+      - hbogo
+recorder:
+  exclude:
+    domains:
+      - sensor
+      - calendar
+notify:
+  - name: telegram_my_channel
+    platform: telegram
+    chat_id: !secret telegram_my_channel_id
+
+
+telegram_bot: !include telegram.yaml
+ 
+group: !include groups.yaml
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml

@@ -1,0 +1,55 @@
+- id: '1608789382954'
+  alias: Air Purifier mode change
+  description: ''
+  trigger:
+  - platform: state
+    entity_id: input_select.mi_air_purifier_mode
+  condition: []
+  action:
+  - service: fan.set_speed
+    entity_id: fan.mi_air_purifier_3h
+    data_template:
+      speed: '{{ states(''input_select.mi_air_purifier_mode'') }}'
+  mode: single
+- id: '1608790178041'
+  alias: Air Purifier mode update
+  description: ''
+  trigger:
+  - platform: state
+    entity_id: fan.mi_air_purifier_3h
+  condition: []
+  action:
+  - service: input_select.select_option
+    entity_id: input_select.mi_air_purifier_mode
+    data_template:
+      option: '{{ state_attr(''fan.mi_air_purifier_3h'', ''speed'') }}'
+  mode: single
+- id: '1608790483410'
+  alias: Air Purifier fan level change
+  description: ''
+  trigger:
+  - platform: state
+    entity_id: input_number.mi_air_purifier_fan_level
+  condition: []
+  action:
+  - service: xiaomi_miio.fan_set_fan_level
+    entity_id: fan.mi_air_purifier_3h
+    data_template:
+      level: '{{ states(''input_number.mi_air_purifier_fan_level'') | int }}'
+  mode: single
+- id: '1611913685436'
+  alias: Send a message when is someone's birthday
+  description: ''
+  trigger:
+  - platform: state
+    entity_id: calendar.birthdays
+    attribute: offset_reached
+    to: 'true'
+  condition:
+  - condition: time
+    after: 09:00:00
+  action:
+  - service: notify.telegram_my_channel
+    data:
+      message: '{{state_attr("calendar.birthdays", "description")}}'
+  mode: single
